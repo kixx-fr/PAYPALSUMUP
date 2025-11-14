@@ -229,13 +229,12 @@ const productContainer = document.getElementById('product-list');
 
 // Fonction POST générique
 async function postData(payload) {
-    // CORRECTION: payload envoyé en JSON brut, comme attendu par le Apps Script
     const response = await fetch(API_URL, {
         method: 'POST',
         mode: 'cors',
         cache: 'no-cache',
         headers: {
-            'Content-Type': 'application/json', // Changé pour correspondre à JSON.parse(e.postData.contents)
+            'Content-Type': 'application/json', 
         },
         body: JSON.stringify(payload) // Envoyer en JSON
     });
@@ -249,9 +248,9 @@ async function fetchProducts() {
         const data = await response.json();
         document.getElementById('loading-message').style.display = 'none';
         
-        // CORRECTION ICI: Remplacer data.products par data.produits
+        // CORRECTION: data.products (singulier) -> data.produits (pluriel)
         if(data.success && data.produits) { 
-            products = data.produits; // CORRECTION ICI
+            products = data.produits; 
             renderProducts(products);
         } else {
             console.error('Erreur lors de la récupération des produits:', data.error); 
@@ -339,7 +338,6 @@ function updateShippingOptions(rates) {
         
         const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
         
-        // CORRECTION: Trouver le bon tarif basé sur le sous-total
         const applicableRates = zones[selectedZone][selectedMode] || [];
         const rate = applicableRates.find(r => subtotal >= r.min && subtotal <= r.max);
 
@@ -348,7 +346,6 @@ function updateShippingOptions(rates) {
             document.getElementById('shipping-details').textContent = `Tarif trouvé pour un sous-total de ${subtotal.toFixed(2)}€ : ${rate.cost.toFixed(2)} €`;
         } else {
             selectedShipping = null;
-            // CORRECTION: Utilise le sous-total actuel pour le message d'erreur
             const rateNotFound = applicableRates.length > 0 ? 
                 ` (Tranche non trouvée pour ${subtotal.toFixed(2)}€)` : 
                 ' (Mode invalide)';
@@ -379,8 +376,8 @@ function addToCart(id) {
             size: product.size,
             price: product.price,
             quantity: 1,
-            stock: product.stock, // Stocke le stock max
-            imageUrls: product.imageUrls // Stocke l'image pour le panier
+            stock: product.stock, 
+            imageUrls: product.imageUrls 
         });
     }
     updateCartDisplays();
@@ -434,7 +431,6 @@ function renderProducts(products) {
         const p = uniqueProducts[masterName];
         const imageUrl = p.imageUrls && p.imageUrls[0] ? p.imageUrls[0] : 'placeholder.png';
         
-        // CORRECTION: Échappement des chaînes pour l'injection HTML
         const safeMasterName = (p.masterName || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
         const safeDescription = (p.seoDescription || 'Description non disponible.').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 
@@ -445,7 +441,11 @@ function renderProducts(products) {
                 const stockText = variant.stock > 0 ? `(Stock: ${variant.stock})` : '(Rupture)';
                 const disabled = variant.stock <= 0 ? 'disabled' : '';
                 const safeVariantName = (variant.masterName || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-                const safeVariantSize = (variant.size || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+                
+                // ⬇️⬇️⬇️ CORRECTION LIGNE 448 ⬇️⬇️⬇️
+                // Convertir la taille (Nombre) en String avant d'appeler .replace()
+                const safeVariantSize = (String(variant.size) || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+                // ⬆️⬆️⬆️ FIN CORRECTION ⬆️⬆️⬆️
                 
                 return `<button onclick="addToCart('${variant.id}')" 
                                 class="bg-gray-100 text-anthracite hover:bg-orange hover:text-white transition duration-200 text-sm font-medium py-1 px-3 rounded-full ${disabled ? 'opacity-50 cursor-not-allowed' : ''}" 
@@ -477,7 +477,7 @@ function renderProducts(products) {
 
 // Mise à Jour de la Fonction updateCartDisplays (CORRIGÉE: Utilise les bons IDs)
 function updateCartDisplays() {
-    // CORRECTION: Utilise les IDs du HTML
+    // CORRECTION: IDs du HTML
     const cartList = document.getElementById('cart-items-list');
     const cartListMobile = document.getElementById('cart-items-list-mobile');
     const emptyMsg = document.getElementById('empty-cart-message');
@@ -517,11 +517,9 @@ function updateCartDisplays() {
     if (emptyMsg) emptyMsg.style.display = totalItems === 0 ? 'block' : 'none';
     if (emptyMsgMobile) emptyMsgMobile.style.display = totalItems === 0 ? 'block' : 'none';
     
-    // CORRECTION: Calcul du total avec les frais de port
     let shippingCost = selectedShipping ? selectedShipping.cost : 0;
     let totalFinal = subtotal + shippingCost;
     
-    // Mettre à jour la bulle du panier
     if (cartCount) cartCount.textContent = totalItems;
 
     // Mettre à jour l'affichage du panier (Partie droite)
@@ -538,10 +536,8 @@ function updateCartDisplays() {
     document.getElementById('total-final-client-input').value = totalFinal.toFixed(2);
     document.getElementById('nombre-articles-total').value = totalItems;
     
-    // Mettre à jour l'affichage dans le formulaire (Partie droite)
     document.getElementById('form-total-text').textContent = `${totalFinal.toFixed(2)} €`;
 
-    // Mettre à jour l'état du bouton PayPal
     handlePaymentMethodChange(); 
 }
 
@@ -556,7 +552,7 @@ function createPaypalOrderPayload(total) {
     };
 }
 
-// Fonctions auxiliaires pour le récapitulatif (Utilisées par le payload)
+// Fonctions auxiliaires pour le récapitulatif
 function buildRecapText(cart) {
     let text = "Récapitulatif des articles:\n";
     cart.forEach(item => {
@@ -573,7 +569,7 @@ function buildRecapHTML(cart) {
     return html;
 }
 
-// Mise à Jour de la Fonction buildCreateOrderPayload (Cohérente avec le Apps Script)
+// Mise à Jour de la Fonction buildCreateOrderPayload
 function buildCreateOrderPayload(methodePaiement, sumupCheckoutId = null, paypalOrderId = null) {
     if(cart.length === 0) throw new Error("Panier vide");
     
@@ -620,7 +616,6 @@ function showConfirmationAndClear(prenom) {
     document.getElementById('checkout-form').reset();
     document.getElementById('virement-info').classList.add('hidden');
     document.getElementById('form-paiement-modal').style.display='none';
-    // Réinitialiser les options de livraison
     updateShippingOptions(shippingRates);
 }
 
@@ -629,25 +624,22 @@ async function postCreateOrder(payload) {
     if (!payload.prenom || !payload.nom || !payload.email || !payload.telephone || !payload.adresse || !payload.communeCP) {
         throw new Error('Veuillez compléter tous les champs client (Nom, Email, Adresse, Zone).');
     }
-    
-    // Le déstockage est géré par le Apps Script (handleUpdateStock)
     const data = await postData(payload);
     return data;
 }
 
-// Fonction SumUp (CORRIGÉE: Utilise le payload complet et le SDK)
+// Fonction SumUp
 async function handleSumUpCheckout() {
     if(cart.length===0) return alert('Votre panier est vide.');
     const token = grecaptcha.getResponse();
     if(!token) return alert('Veuillez compléter le reCAPTCHA.');
 
     try {
-        const payload = buildCreateOrderPayload('SumUp'); // Vérification de livraison incluse ici
+        const payload = buildCreateOrderPayload('SumUp'); 
         
-        // 1. Appel à Apps Script pour créer un checkout SumUp
         const data = await postData({
             action: 'createSumUpCheckout',
-            ...payload // Envoyer toutes les infos
+            ...payload 
         });
         
         if (!data.success || !data.checkoutId) {
@@ -656,13 +648,11 @@ async function handleSumUpCheckout() {
             return;
         }
 
-        // 2. Initialisation SumUp SDK avec l'ID reçu
         const checkout = new window.SumupCard.Checkout({
             checkoutId: data.checkoutId,
             onResponse: async (type, body) => {
                 if (type === 'success') {
-                    // Le paiement est OK, mais on n'appelle PAS postCreateOrder ici
-                    // Le Webhook s'en occupe côté serveur (déstockage, email)
+                    // Le Webhook s'occupe du déstockage côté serveur
                     showConfirmationAndClear(payload.prenom);
                 } else if (type === 'error') {
                     alert('Erreur de paiement par carte: ' + body.message);
@@ -684,7 +674,6 @@ function handlePaymentMethodChange() {
     const totalFinal = parseFloat(document.getElementById('total-final-client-input').value);
     const paypalButtonContainer = document.getElementById('paypal-button-container');
     
-    // Vider le conteneur PayPal pour le rerendu
     paypalButtonContainer.innerHTML = '';
     paypalButtonContainer.dataset.rendered = 'false';
 
@@ -693,7 +682,6 @@ function handlePaymentMethodChange() {
         paypal.Buttons({
           style: { layout: 'horizontal', color: 'blue', shape: 'rect', label: 'paypal', tagline: false },
           createOrder: function(data, actions) {
-            // Valider le formulaire AVANT d'ouvrir PayPal
             if (!document.getElementById('checkout-form').checkValidity()) {
                 alert("Veuillez remplir tous les champs (Prénom, Nom, Email, Adresse...).");
                 document.getElementById('checkout-form').reportValidity();
@@ -720,7 +708,7 @@ function handlePaymentMethodChange() {
     }
 }
 
-// Fonctions modales (CORRIGÉES: Ciblent les bons IDs)
+// Fonctions modales
 function openImageModal(productId, initialIndex) {
     const p = products.find(prod => prod.id === productId);
     if (!p || !p.imageUrls || p.imageUrls.length === 0) return;
@@ -748,8 +736,7 @@ document.getElementById('newsletter-form').addEventListener('submit', async (e) 
     const email = document.getElementById('newsletter-email').value;
     const messageElement = document.getElementById('newsletter-message');
     
-    // CORRECTION: Le payload doit correspondre au Apps Script
-    const payload = { action: 'addNewsletter', email: email, recaptchaResponse: grecaptcha.getResponse() }; // Ajout reCAPTCHA si nécessaire
+    const payload = { action: 'addNewsletter', email: email, recaptchaResponse: grecaptcha.getResponse() };
 
     try {
         const data = await postData(payload);
@@ -776,14 +763,14 @@ document.getElementById('newsletter-form').addEventListener('submit', async (e) 
 async function init() {
     await fetchProducts();
     await fetchShippingRates(); 
-    updateCartDisplays(); // Met à jour le panier (qui est peut-être en localStorage)
+    updateCartDisplays(); 
 }
 
-// Écouteurs globaux (CORRIGÉS: Ciblent les bons IDs)
+// Écouteurs globaux
 document.addEventListener('DOMContentLoaded', () => {
   init();
 
-  // Écouteurs Modal Image
+  // Écouteurs Modal Image (Cible les bons IDs)
   document.getElementById('next-img-btn').addEventListener('click', nextImage);
   document.getElementById('prev-img-btn').addEventListener('click', prevImage);
   document.getElementById('close-img-modal-btn').addEventListener('click', () => { document.getElementById('img-modal').style.display = 'none'; });
@@ -806,7 +793,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     try {
         const payload = buildCreateOrderPayload('virement', null);
-        const data = await postCreateOrder(payload); // Utilise la fonction POST unique
+        const data = await postCreateOrder(payload); 
         if(data.success){ showConfirmationAndClear(payload.prenom); } else { alert('Erreur création commande: ' + (data.error || 'Erreur')); console.error(data); }
     } catch(e){ 
         if(e.message !== "Missing shipping selection") console.error('createOrder err', e); 
@@ -822,7 +809,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('virement-info').classList.toggle('hidden');
   });
 
-  // Vider le panier (les deux boutons)
+  // Vider le panier (Cible les bons IDs)
   document.getElementById('btn-clear-cart').addEventListener('click', ()=>{
     if(confirm('Vider le panier ?')){ cart=[]; selectedShipping = null; updateCartDisplays(); }
   });
