@@ -249,11 +249,12 @@ async function fetchProducts() {
         const data = await response.json();
         document.getElementById('loading-message').style.display = 'none';
         
-        if(data.success && data.products) { // CORRIGÉ: Le script renvoie 'products'
-            products = data.products;
+        // CORRECTION ICI: Remplacer data.products par data.produits
+        if(data.success && data.produits) { 
+            products = data.produits; // CORRECTION ICI
             renderProducts(products);
         } else {
-            console.error('Erreur lors de la récupération des produits:', data.error);
+            console.error('Erreur lors de la récupération des produits:', data.error); 
             productContainer.innerHTML = '<p class="text-red-500 text-center col-span-full">Erreur: Impossible de charger les produits. Veuillez réessayer.</p>';
         }
     } catch(error) {
